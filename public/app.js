@@ -8,6 +8,11 @@ const endpointInput = document.getElementById('endpoint');
 const modelInput = document.getElementById('model');
 const systemInput = document.getElementById('system');
 const thinkInput = document.getElementById('think');
+const sidebar = document.querySelector('.sidebar');
+const workspaceSubtitle = document.getElementById('workspace-subtitle');
+const modelBadge = document.getElementById('active-model');
+const endpointBadge = document.getElementById('active-endpoint');
+const thinkBadge = document.getElementById('active-think');
 
 const STORAGE_KEY = 'ai-agent-playground-settings-v1';
 const DEFAULT_ENDPOINT = 'https://impossible-georgeanna-yuhfjrifj-d252474c.koyeb.app/api/chat';
@@ -17,6 +22,71 @@ const state = {
   pending: false
 };
 
+function summariseEndpoint(url) {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    return parsed.host;
+  } catch (_error) {
+    return url;
+  }
+}
+
+function normaliseThinking(value) {
+  if (!value) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => normaliseThinking(item)).join('').trim();
+  }
+  if (typeof value === 'object') {
+    for (const key of ['text', 'content', 'value', 'message']) {
+      if (typeof value[key] === 'string') {
+        return value[key].trim();
+      }
+      if (Array.isArray(value[key])) {
+        return value[key].map((item) => normaliseThinking(item)).join('').trim();
+      }
+    }
+    return Object.values(value)
+      .map((item) => (typeof item === 'string' ? item : normaliseThinking(item)))
+      .join('')
+      .trim();
+  }
+  return '';
+}
+
+function renderConnectionMeta() {
+  const endpoint = endpointInput.value.trim() || DEFAULT_ENDPOINT;
+  const model = modelInput.value.trim() || 'gpt-oss:20b';
+  const thinkEnabled = thinkInput.checked;
+
+  const endpointSummary = summariseEndpoint(endpoint);
+
+  if (workspaceSubtitle) {
+    workspaceSubtitle.textContent = `${model} • ${endpointSummary}`;
+  }
+
+  if (modelBadge) {
+    modelBadge.textContent = model;
+    modelBadge.title = model;
+  }
+
+  if (endpointBadge) {
+    endpointBadge.textContent = endpointSummary;
+    endpointBadge.title = endpoint;
+  }
+
+  if (thinkBadge) {
+    thinkBadge.textContent = thinkEnabled ? 'Мысли: вкл' : 'Мысли: выкл';
+    thinkBadge.dataset.state = thinkEnabled ? 'on' : 'off';
+    thinkBadge.title = thinkEnabled ? 'Режим размышлений активен' : 'Режим размышлений отключён';
+  }
+}
+
 function loadSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -24,6 +94,7 @@ function loadSettings() {
       endpointInput.value = DEFAULT_ENDPOINT;
       modelInput.value = 'gpt-oss:20b';
       thinkInput.checked = true;
+      renderConnectionMeta();
       return;
     }
     const parsed = JSON.parse(raw);
@@ -37,6 +108,7 @@ function loadSettings() {
     modelInput.value = 'gpt-oss:20b';
     thinkInput.checked = true;
   }
+  renderConnectionMeta();
 }
 
 function persistSettings() {
@@ -47,6 +119,7 @@ function persistSettings() {
     think: thinkInput.checked
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  renderConnectionMeta();
 }
 
 function autoResizeTextarea() {
@@ -74,20 +147,39 @@ function createMessageElement(message) {
   const roleLabel = element.querySelector('.role');
   const content = element.querySelector('.content');
   const timestamp = element.querySelector('.timestamp');
+  const thinkingDetails = element.querySelector('.thinking');
+  const thinkingContent = element.querySelector('.thinking-content');
+
+  element.dataset.role = message.role;
 
   avatar.dataset.role = message.role;
   avatar.textContent = message.role === 'user' ? 'U' : message.role === 'assistant' ? 'AI' : 'FX';
   roleLabel.textContent = formatRole(message.role);
-  timestamp.textContent = new Date(message.createdAt || Date.now()).toLocaleTimeString();
-  content.textContent = message.content || '';
+
+  const created = message.createdAt || message.timestamp || new Date().toISOString();
+  timestamp.textContent = new Date(created).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const text = typeof message.content === 'string' ? message.content.trim() : '';
+  if (text) {
+    content.textContent = text;
+  } else if (message.role === 'assistant' && !message.pending) {
+    content.textContent = 'Готово.';
+  } else if (message.pending) {
+    content.textContent = 'Модель формулирует ответ…';
+  } else {
+    content.textContent = '';
+  }
+
+  const thinkingText = normaliseThinking(message.thinking);
+  if (thinkingText) {
+    thinkingContent.textContent = thinkingText;
+    thinkingDetails.open = true;
+  } else {
+    thinkingDetails.remove();
+  }
 
   if (message.pending) {
     element.classList.add('pending');
-    content.textContent = 'Модель размышляет...';
-  }
-
-  if (message.role === 'assistant' && !message.content && !message.pending) {
-    content.textContent = 'Готово.';
   }
 
   return element;
@@ -107,9 +199,10 @@ function updateStateMessages(nextMessages) {
     .filter((msg) => msg && typeof msg.role === 'string')
     .map((msg) => ({
       role: msg.role,
-      content: msg.content || '',
+      content: typeof msg.content === 'string' ? msg.content : '',
       name: msg.name,
       tool_call_id: msg.tool_call_id,
+      thinking: normaliseThinking(msg.thinking),
       createdAt: msg.createdAt || msg.timestamp || new Date().toISOString()
     }));
   renderChat();
@@ -128,9 +221,11 @@ async function sendMessage(text) {
   const pendingMessage = {
     role: 'assistant',
     content: '',
+    thinking: thinkInput.checked ? 'Модель размышляет…' : '',
     pending: true,
     createdAt: new Date().toISOString()
   };
+
   state.messages = [...optimisticMessages, pendingMessage];
   renderChat();
 
@@ -202,16 +297,19 @@ clearChatButton.addEventListener('click', () => {
   renderChat();
 });
 
-toggleSettingsButton.addEventListener('click', () => {
-  const isHidden = settingsPanel.classList.contains('hidden');
-  settingsPanel.classList.toggle('hidden', !isHidden);
-  settingsPanel.classList.toggle('visible', isHidden);
-  if (isHidden) {
-    settingsPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-});
+if (toggleSettingsButton && sidebar) {
+  toggleSettingsButton.addEventListener('click', () => {
+    const collapsed = sidebar.classList.toggle('collapsed');
+    toggleSettingsButton.setAttribute('aria-expanded', String(!collapsed));
+    toggleSettingsButton.textContent = collapsed ? 'Развернуть панель' : 'Свернуть панель';
+  });
+}
 
-settingsPanel.addEventListener('input', persistSettings);
+if (settingsPanel) {
+  settingsPanel.addEventListener('input', persistSettings);
+}
+
+thinkInput.addEventListener('change', persistSettings);
 messageInput.addEventListener('input', autoResizeTextarea);
 
 loadSettings();

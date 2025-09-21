@@ -7,63 +7,108 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div class="background"></div>
-    <main class="shell">
-      <header class="header">
-        <div>
-          <h1>AI Agent Playground</h1>
-          <p>Интерактивная площадка для общения с моделью и удалённым терминалом.</p>
+    <div class="aurora"></div>
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="Панель настроек">
+        <div class="sidebar-header">
+          <div class="brand">
+            <span class="brand-badge">AI Agent</span>
+            <h1>AI Agent Playground</h1>
+            <p class="sidebar-description">
+              Интерактивная песочница для экспериментов с моделью, режимом размышлений и ограниченным терминалом внутри
+              <code>sandbox</code>.
+            </p>
+          </div>
+          <button id="toggle-settings" class="collapse-button" type="button" aria-expanded="true">
+            Свернуть панель
+          </button>
         </div>
-        <button id="toggle-settings" class="ghost-button" type="button">Настройки</button>
-      </header>
 
-      <section id="settings-panel" class="settings hidden">
-        <div class="settings-grid">
-          <label class="field">
-            <span>API Endpoint</span>
-            <input type="url" id="endpoint" placeholder="https://example.com/api/chat" />
-          </label>
-          <label class="field">
-            <span>Модель</span>
-            <input type="text" id="model" placeholder="gpt-oss:20b" />
-          </label>
-          <label class="field">
-            <span>Системные инструкции</span>
-            <textarea id="system" rows="3" placeholder="Дополнительные указания для модели"></textarea>
-          </label>
-          <label class="switch">
-            <input type="checkbox" id="think" checked />
-            <span class="slider"></span>
-            <span class="switch-label">Активировать режим размышлений (think)</span>
-          </label>
+        <section id="settings-panel" class="settings" aria-label="Настройки запроса">
+          <div class="settings-grid">
+            <label class="field">
+              <span>API Endpoint</span>
+              <input type="url" id="endpoint" placeholder="https://example.com/api/chat" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span>Модель</span>
+              <input type="text" id="model" placeholder="gpt-oss:20b" spellcheck="false" />
+            </label>
+            <label class="field field-wide">
+              <span>Системные инструкции</span>
+              <textarea id="system" rows="4" placeholder="Дополнительные указания для модели"></textarea>
+            </label>
+            <label class="switch">
+              <input type="checkbox" id="think" checked />
+              <span class="switch-slider" aria-hidden="true"></span>
+              <span class="switch-label">Включить режим размышлений (think)</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="sidebar-footer" aria-label="Справка">
+          <h2>Инструменты</h2>
+          <p>
+            Инструмент <strong>terminal</strong> выполняет команды только внутри каталога <code>sandbox</code>. Попытки покинуть
+            директорию будут заблокированы.
+          </p>
+          <p class="hint">Сохраняйте настройки — они автоматически подставляются при следующем визите.</p>
+        </section>
+      </aside>
+
+      <section class="workspace" aria-label="Область чата">
+        <header class="workspace-header">
+          <div>
+            <h2>Диалог</h2>
+            <p id="workspace-subtitle" class="workspace-subtitle"></p>
+          </div>
+          <div class="chip-group" role="status" aria-live="polite">
+            <span class="chip" id="active-model"></span>
+            <span class="chip" id="active-endpoint"></span>
+            <span class="chip" id="active-think"></span>
+          </div>
+        </header>
+
+        <div class="chat-surface">
+          <section class="chat" id="chat" aria-live="polite" aria-label="История сообщений"></section>
         </div>
+
+        <form id="composer" class="composer" autocomplete="off">
+          <label class="sr-only" for="message">Введите сообщение для модели</label>
+          <textarea id="message" placeholder="Сформулируйте запрос или команду…" rows="1"></textarea>
+          <div class="composer-actions">
+            <button type="button" id="clear-chat" class="ghost-button">Очистить</button>
+            <button type="submit" class="primary-button">Отправить</button>
+          </div>
+        </form>
       </section>
-
-      <section class="chat" id="chat"></section>
-
-      <form id="composer" class="composer">
-        <textarea id="message" placeholder="Введите сообщение..." rows="1"></textarea>
-        <div class="composer-actions">
-          <button type="button" id="clear-chat" class="ghost-button">Очистить</button>
-          <button type="submit" class="primary-button">Отправить</button>
-        </div>
-      </form>
     </main>
+
     <template id="message-template">
       <article class="message">
         <div class="avatar" data-role=""></div>
         <div class="bubble">
           <header class="meta">
             <span class="role"></span>
+            <span class="meta-separator">•</span>
             <time class="timestamp"></time>
           </header>
+          <details class="thinking">
+            <summary>Мысли</summary>
+            <pre class="thinking-content"></pre>
+          </details>
           <pre class="content"></pre>
         </div>
       </article>
     </template>
+
     <script src="app.js" type="module"></script>
   </body>
 </html>
