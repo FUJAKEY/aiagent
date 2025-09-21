@@ -148,16 +148,19 @@ async function callModel({ endpoint, model, conversation, think, toolResults = [
   };
 
   if (Array.isArray(toolResults) && toolResults.length) {
-    payload.tool_results = toolResults
+    const preparedResults = toolResults
       .filter((entry) => entry && typeof entry.tool_call_id === 'string')
-      .map((entry) => ({
-        tool_call_id: entry.tool_call_id,
-        output: entry.output ?? entry.content ?? '',
-        content: entry.content ?? entry.output ?? ''
-      }));
+      .map((entry) => {
+        const textPayload = entry.output ?? entry.content ?? '';
+        return {
+          tool_call_id: entry.tool_call_id,
+          content: textPayload,
+          output: textPayload
+        };
+      });
 
-    if (!payload.tool_results.length) {
-      delete payload.tool_results;
+    if (preparedResults.length) {
+      payload.tool_results = preparedResults;
     }
   }
 
@@ -171,8 +174,26 @@ async function callModel({ endpoint, model, conversation, think, toolResults = [
 
   if (!response.ok) {
     const errorText = await response.text();
+    let parsedDetails;
+    try {
+      parsedDetails = JSON.parse(errorText);
+    } catch (_jsonError) {
+      parsedDetails = null;
+    }
+
     const err = new Error(`Ошибка запроса к модели: ${response.status} ${response.statusText}`);
-    err.details = errorText;
+    err.status = response.status;
+    err.statusText = response.statusText;
+    err.details = parsedDetails ?? errorText;
+    if (parsedDetails && typeof parsedDetails.error === 'string') {
+      err.message = parsedDetails.error;
+    }
+
+    const mismatchMessage = 'mismatch between tool calls and tool results';
+    if (typeof errorText === 'string' && errorText.toLowerCase().includes(mismatchMessage)) {
+      err.hint = 'Убедитесь, что для каждого вызова инструмента, запрошенного моделью, возвращается ответ с тем же tool_call_id.';
+    }
+
     throw err;
   }
 
@@ -205,6 +226,58 @@ function formatToolResult({ command, result }) {
   return blocks.join('\n');
 }
 
+function normaliseHistoryForModel(messages) {
+  return messages
+    .map((msg) => {
+      if (!msg || typeof msg.role !== 'string') {
+        return null;
+      }
+
+      if (msg.role === 'tool') {
+        const label = msg.name ? `[tool:${msg.name}]` : '[tool]';
+        const body = typeof msg.content === 'string' ? msg.content.trim() : '';
+        const content = body ? `${label}\n${body}` : label;
+        return {
+          role: 'assistant',
+          content,
+          name: msg.name ? `tool:${msg.name}` : undefined
+        };
+      }
+
+      return {
+        role: msg.role,
+        content: msg.content,
+        name: msg.name
+      };
+    })
+    .filter((msg) => msg && typeof msg.content === 'string');
+}
+
+function parseErrorDetails(details) {
+  if (!details) {
+    return null;
+  }
+
+  if (typeof details === 'object') {
+    return details;
+  }
+
+  if (typeof details === 'string') {
+    const trimmed = details.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(trimmed);
+    } catch (_jsonError) {
+      return trimmed;
+    }
+  }
+
+  return null;
+}
+
 app.post('/api/chat', async (req, res) => {
   try {
     const {
@@ -223,10 +296,11 @@ app.post('/api/chat', async (req, res) => {
       ? endpoint.trim()
       : DEFAULT_ENDPOINT;
 
-    const conversation = [];
     const systemPrompt = [BUILTIN_SYSTEM_PROMPT.trim(), system.trim()].filter(Boolean).join('\n\n');
-    conversation.push({ role: 'system', content: systemPrompt });
-    conversation.push(...normaliseMessages(messages));
+
+    const initialMessages = normaliseMessages(messages).filter((msg) => msg.role !== 'system');
+    const conversationForClient = [{ role: 'system', content: systemPrompt }, ...initialMessages];
+    const conversationForModel = [{ role: 'system', content: systemPrompt }, ...normaliseHistoryForModel(initialMessages)];
 
     const toolExecutions = [];
     let pendingToolResults = [];
@@ -239,7 +313,7 @@ app.post('/api/chat', async (req, res) => {
       const data = await callModel({
         endpoint: targetEndpoint,
         model,
-        conversation,
+        conversation: conversationForModel,
         think,
         toolResults: pendingToolResults
       });
@@ -251,7 +325,8 @@ app.post('/api/chat', async (req, res) => {
         throw new Error('Модель не вернула сообщение.');
       }
 
-      conversation.push(assistantMessage);
+      conversationForModel.push(assistantMessage);
+      conversationForClient.push(assistantMessage);
       lastModelResponse = assistantMessage;
 
       const toolCalls = Array.isArray(assistantMessage.tool_calls)
@@ -267,15 +342,19 @@ app.post('/api/chat', async (req, res) => {
           continue;
         }
 
+        const toolCallId = call.id || call.tool_call_id;
+        if (!toolCallId) {
+          throw new Error('Модель вернула вызов инструмента без идентификатора tool_call_id.');
+        }
+
         if (call.function.name !== 'terminal') {
-          const toolCallId = call.id || call.tool_call_id || `tool-${call.function.name}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
           const toolMessage = {
             role: 'tool',
             name: call.function.name,
             content: 'Инструмент не поддерживается сервером.',
             tool_call_id: toolCallId
           };
-          conversation.push(toolMessage);
+          conversationForClient.push(toolMessage);
           toolExecutions.push({
             tool: call.function.name,
             command: null,
@@ -302,14 +381,13 @@ app.post('/api/chat', async (req, res) => {
 
         const result = await runTerminal(command);
         const formattedResult = formatToolResult({ command, result });
-        const toolCallId = call.id || call.tool_call_id || `terminal-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
         const toolMessage = {
           role: 'tool',
           name: call.function.name,
           content: formattedResult,
           tool_call_id: toolCallId
         };
-        conversation.push(toolMessage);
+        conversationForClient.push(toolMessage);
         toolExecutions.push({
           tool: call.function.name,
           command,
@@ -331,15 +409,32 @@ app.post('/api/chat', async (req, res) => {
 
     res.json({
       message: lastModelResponse,
-      conversation,
+      conversation: conversationForClient,
       toolExecutions
     });
   } catch (error) {
     console.error('Ошибка /api/chat:', error);
-    res.status(500).json({
-      error: 'Не удалось обработать запрос к модели.',
-      details: error.details || error.message
-    });
+    const statusCode = typeof error.status === 'number' && error.status >= 400 ? error.status : 500;
+    const details = parseErrorDetails(error.details || error.message);
+    const responsePayload = {
+      error: statusCode === 400 ? 'Некорректный запрос к модели.' : 'Не удалось обработать запрос к модели.',
+      message: error.message,
+      details
+    };
+
+    if (typeof error.status === 'number') {
+      responsePayload.upstreamStatus = error.status;
+    }
+
+    if (typeof error.statusText === 'string') {
+      responsePayload.upstreamStatusText = error.statusText;
+    }
+
+    if (error.hint) {
+      responsePayload.hint = error.hint;
+    }
+
+    res.status(statusCode).json(responsePayload);
   }
 });
 
