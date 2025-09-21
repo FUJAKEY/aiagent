@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Agent Playground</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="background"></div>
+    <div class="aurora"></div>
+    <main class="app-shell">
+      <button
+        type="button"
+        id="menu-button"
+        class="menu-trigger floating"
+        aria-label="Открыть меню настроек"
+        aria-haspopup="true"
+        aria-controls="sidebar"
+        aria-expanded="false"
+      >
+        <span class="menu-icon" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+      <section class="workspace" aria-label="Область чата">
+        <div class="chat-surface">
+          <section class="chat" id="chat" aria-live="polite" aria-label="История сообщений"></section>
+        </div>
+
+        <form id="composer" class="composer" autocomplete="off">
+          <label class="sr-only" for="message">Введите сообщение для модели</label>
+          <textarea id="message" placeholder="Сформулируйте запрос или команду…" rows="1"></textarea>
+          <div class="composer-actions">
+            <button type="button" id="clear-chat" class="ghost-button">Очистить</button>
+            <button type="submit" class="primary-button">Отправить</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <aside class="sidebar" id="sidebar" aria-label="Панель настроек">
+      <div class="sidebar-header">
+        <div class="brand">
+          <span class="brand-badge">AI Agent</span>
+          <h2>Настройки взаимодействия</h2>
+          <p class="sidebar-description">
+            Интерактивная песочница для экспериментов с моделью, режимом размышлений и ограниченным терминалом внутри
+            <code>sandbox</code>.
+          </p>
+        </div>
+        <button type="button" id="close-sidebar" class="sidebar-close" aria-label="Закрыть меню настроек">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <section id="settings-panel" class="settings" aria-label="Настройки запроса">
+        <div class="settings-grid">
+          <label class="field">
+            <span>API Endpoint</span>
+            <input type="url" id="endpoint" placeholder="https://example.com/api/chat" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>Модель</span>
+            <input type="text" id="model" placeholder="gpt-oss:20b" spellcheck="false" />
+          </label>
+          <label class="field field-wide">
+            <span>Системные инструкции</span>
+            <textarea id="system" rows="4" placeholder="Дополнительные указания для модели"></textarea>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="think" checked />
+            <span class="switch-slider" aria-hidden="true"></span>
+            <span class="switch-label">Включить режим размышлений (think)</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="sidebar-footer" aria-label="Справка">
+        <h2>Инструменты</h2>
+        <p>
+          Инструмент <strong>terminal</strong> выполняет команды только внутри каталога <code>sandbox</code>. Попытки покинуть
+          директорию будут заблокированы.
+        </p>
+        <p class="hint">Сохраняйте настройки — они автоматически подставляются при следующем визите.</p>
+      </section>
+    </aside>
+
+    <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+
+    <template id="message-template">
+      <article class="message">
+        <div class="avatar" data-role=""></div>
+        <div class="bubble">
+          <header class="meta">
+            <span class="role"></span>
+            <span class="meta-separator">•</span>
+            <time class="timestamp"></time>
+          </header>
+          <details class="thinking">
+            <summary>Мысли</summary>
+            <pre class="thinking-content"></pre>
+          </details>
+          <pre class="content"></pre>
+        </div>
+      </article>
+    </template>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
