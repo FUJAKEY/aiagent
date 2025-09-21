@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Agent Playground</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="background"></div>
+    <main class="shell">
+      <header class="header">
+        <div>
+          <h1>AI Agent Playground</h1>
+          <p>Интерактивная площадка для общения с моделью и удалённым терминалом.</p>
+        </div>
+        <button id="toggle-settings" class="ghost-button" type="button">Настройки</button>
+      </header>
+
+      <section id="settings-panel" class="settings hidden">
+        <div class="settings-grid">
+          <label class="field">
+            <span>API Endpoint</span>
+            <input type="url" id="endpoint" placeholder="https://example.com/api/chat" />
+          </label>
+          <label class="field">
+            <span>Модель</span>
+            <input type="text" id="model" placeholder="gpt-oss:20b" />
+          </label>
+          <label class="field">
+            <span>Системные инструкции</span>
+            <textarea id="system" rows="3" placeholder="Дополнительные указания для модели"></textarea>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="think" checked />
+            <span class="slider"></span>
+            <span class="switch-label">Активировать режим размышлений (think)</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="chat" id="chat"></section>
+
+      <form id="composer" class="composer">
+        <textarea id="message" placeholder="Введите сообщение..." rows="1"></textarea>
+        <div class="composer-actions">
+          <button type="button" id="clear-chat" class="ghost-button">Очистить</button>
+          <button type="submit" class="primary-button">Отправить</button>
+        </div>
+      </form>
+    </main>
+    <template id="message-template">
+      <article class="message">
+        <div class="avatar" data-role=""></div>
+        <div class="bubble">
+          <header class="meta">
+            <span class="role"></span>
+            <time class="timestamp"></time>
+          </header>
+          <pre class="content"></pre>
+        </div>
+      </article>
+    </template>
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
