@@ -34,6 +34,8 @@ body {
 body {
   margin: 0;
   min-height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   color: var(--text-primary);
   background: radial-gradient(circle at 5% 15%, rgba(56, 189, 248, 0.3), transparent 45%),
     radial-gradient(circle at 90% 20%, rgba(244, 114, 182, 0.28), transparent 55%),
@@ -75,11 +77,12 @@ body {
   z-index: 1;
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: clamp(24px, 4vw, 36px);
-  padding: clamp(16px, 4vw, 32px);
+  padding: 0;
+  gap: 0;
 }
 
 .sidebar {
@@ -355,22 +358,28 @@ body.drawer-open {
 .workspace {
   position: relative;
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding: clamp(24px, 3vw, 36px);
-  border-radius: var(--radius-xl);
-  background: var(--panel-strong);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 36px 110px rgba(2, 6, 23, 0.75);
-  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .workspace-header {
   display: flex;
   align-items: center;
-  gap: clamp(16px, 3vw, 28px);
+  gap: clamp(14px, 3vw, 24px);
   flex-wrap: wrap;
+  padding: clamp(18px, 4vw, 28px) clamp(20px, 5vw, 40px);
+  background: rgba(3, 7, 18, 0.82);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(148, 163, 184, 0.16);
 }
 
 .workspace-header h1 {
@@ -482,21 +491,24 @@ body.drawer-open .menu-icon span:nth-child(3) {
 .chat-surface {
   flex: 1;
   min-height: 0;
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.4);
-  padding: 18px 20px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  padding: clamp(16px, 5vw, 32px) clamp(20px, 5vw, 40px);
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
 }
 
 .chat {
   width: 100%;
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 18px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding-right: clamp(4px, 1vw, 12px);
   scroll-behavior: smooth;
 }
 
@@ -643,21 +655,24 @@ body.drawer-open .menu-icon span:nth-child(3) {
 .composer {
   display: grid;
   gap: 16px;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  padding: 18px 20px 20px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  padding: clamp(16px, 4vw, 28px) clamp(20px, 5vw, 36px) clamp(20px, 5vw, 32px);
+  background: rgba(3, 7, 18, 0.9);
+  border: none;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: blur(14px);
+  padding-bottom: calc(clamp(20px, 5vw, 32px) + env(safe-area-inset-bottom, 0px));
 }
 
 .composer textarea {
   width: 100%;
-  min-height: 110px;
+  min-height: 64px;
   resize: none;
   border-radius: var(--radius-md);
   border: 1px solid rgba(148, 163, 184, 0.28);
   padding: 14px 16px;
-  background: rgba(11, 18, 32, 0.85);
+  background: rgba(2, 6, 23, 0.7);
   color: var(--text-primary);
   font: inherit;
   font-size: 1rem;
@@ -724,12 +739,13 @@ body.drawer-open .menu-icon span:nth-child(3) {
 }
 
 @media (max-width: 1200px) {
-  .app-shell {
-    padding: clamp(14px, 4vw, 28px);
+  .chat-surface {
+    padding: clamp(14px, 4vw, 26px) clamp(18px, 4.5vw, 30px);
   }
 
-  .workspace {
-    padding: clamp(22px, 5vw, 32px);
+  .composer {
+    padding: clamp(14px, 4vw, 24px) clamp(18px, 4.5vw, 28px) clamp(16px, 4.5vw, 26px);
+    padding-bottom: calc(clamp(16px, 4.5vw, 26px) + env(safe-area-inset-bottom, 0px));
   }
 
   .chip-group {
@@ -738,10 +754,6 @@ body.drawer-open .menu-icon span:nth-child(3) {
 }
 
 @media (max-width: 900px) {
-  .workspace {
-    padding: clamp(20px, 6vw, 28px);
-  }
-
   .workspace-header {
     align-items: flex-start;
   }
@@ -758,28 +770,33 @@ body.drawer-open .menu-icon span:nth-child(3) {
   .chip-group {
     margin-left: 0;
     justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .chat-surface {
+    padding: 20px 20px;
+  }
+
+  .composer {
+    padding: 18px 20px 24px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   }
 }
 
 @media (max-width: 640px) {
-  .app-shell {
-    padding: clamp(10px, 6vw, 18px);
-  }
-
-  .workspace {
-    padding: clamp(16px, 7vw, 24px);
-    gap: 18px;
-    border-radius: var(--radius-lg);
-  }
-
   .workspace-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 14px;
+    gap: 12px;
+    padding: 16px 18px;
+  }
+
+  .workspace-title {
+    min-width: 0;
   }
 
   .workspace-header h1 {
-    font-size: clamp(1.35rem, 7vw, 1.75rem);
+    font-size: clamp(1.3rem, 6.5vw, 1.7rem);
   }
 
   .workspace-subtitle {
@@ -796,7 +813,7 @@ body.drawer-open .menu-icon span:nth-child(3) {
   }
 
   .chat-surface {
-    padding: 14px 16px;
+    padding: 20px 16px;
   }
 
   .message {
@@ -811,8 +828,13 @@ body.drawer-open .menu-icon span:nth-child(3) {
     font-size: 1rem;
   }
 
+  .composer {
+    padding: 18px 16px 24px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
   .composer textarea {
-    min-height: 88px;
+    min-height: 56px;
   }
 }
 
