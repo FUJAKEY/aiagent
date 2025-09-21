@@ -138,7 +138,7 @@ function normaliseMessages(rawMessages = []) {
     .filter((msg) => typeof msg.role === 'string' && typeof msg.content === 'string');
 }
 
-async function callModel({ endpoint, model, conversation, think }) {
+async function callModel({ endpoint, model, conversation, think, toolResults = [] }) {
   const payload = {
     model,
     messages: conversation,
@@ -146,6 +146,20 @@ async function callModel({ endpoint, model, conversation, think }) {
     stream: false,
     think: Boolean(think)
   };
+
+  if (Array.isArray(toolResults) && toolResults.length) {
+    payload.tool_results = toolResults
+      .filter((entry) => entry && typeof entry.tool_call_id === 'string')
+      .map((entry) => ({
+        tool_call_id: entry.tool_call_id,
+        output: entry.output ?? entry.content ?? '',
+        content: entry.content ?? entry.output ?? ''
+      }));
+
+    if (!payload.tool_results.length) {
+      delete payload.tool_results;
+    }
+  }
 
   const response = await fetchFn(endpoint, {
     method: 'POST',
@@ -215,6 +229,7 @@ app.post('/api/chat', async (req, res) => {
     conversation.push(...normaliseMessages(messages));
 
     const toolExecutions = [];
+    let pendingToolResults = [];
     const safetyLimit = 6;
     let iterations = 0;
     let lastModelResponse = null;
@@ -225,8 +240,11 @@ app.post('/api/chat', async (req, res) => {
         endpoint: targetEndpoint,
         model,
         conversation,
-        think
+        think,
+        toolResults: pendingToolResults
       });
+
+      pendingToolResults = [];
 
       const assistantMessage = extractAssistantMessage(data);
       if (!assistantMessage) {
@@ -250,17 +268,23 @@ app.post('/api/chat', async (req, res) => {
         }
 
         if (call.function.name !== 'terminal') {
+          const toolCallId = call.id || call.tool_call_id || `tool-${call.function.name}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
           const toolMessage = {
             role: 'tool',
             name: call.function.name,
             content: 'Инструмент не поддерживается сервером.',
-            tool_call_id: call.id
+            tool_call_id: toolCallId
           };
           conversation.push(toolMessage);
           toolExecutions.push({
             tool: call.function.name,
             command: null,
             result: 'Инструмент не поддерживается сервером.'
+          });
+          pendingToolResults.push({
+            tool_call_id: toolCallId,
+            content: 'Инструмент не поддерживается сервером.',
+            output: 'Инструмент не поддерживается сервером.'
           });
           continue;
         }
@@ -278,11 +302,12 @@ app.post('/api/chat', async (req, res) => {
 
         const result = await runTerminal(command);
         const formattedResult = formatToolResult({ command, result });
+        const toolCallId = call.id || call.tool_call_id || `terminal-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
         const toolMessage = {
           role: 'tool',
           name: call.function.name,
           content: formattedResult,
-          tool_call_id: call.id
+          tool_call_id: toolCallId
         };
         conversation.push(toolMessage);
         toolExecutions.push({
@@ -290,6 +315,12 @@ app.post('/api/chat', async (req, res) => {
           command,
           result: formattedResult,
           success: result.success
+        });
+
+        pendingToolResults.push({
+          tool_call_id: toolCallId,
+          content: formattedResult,
+          output: formattedResult
         });
       }
     }
