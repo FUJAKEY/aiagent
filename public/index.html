@@ -16,34 +16,22 @@
     <div class="background"></div>
     <div class="aurora"></div>
     <main class="app-shell">
+      <button
+        type="button"
+        id="menu-button"
+        class="menu-trigger floating"
+        aria-label="Открыть меню настроек"
+        aria-haspopup="true"
+        aria-controls="sidebar"
+        aria-expanded="false"
+      >
+        <span class="menu-icon" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
       <section class="workspace" aria-label="Область чата">
-        <header class="workspace-header">
-          <button
-            type="button"
-            id="menu-button"
-            class="menu-trigger"
-            aria-label="Открыть меню настроек"
-            aria-haspopup="true"
-            aria-controls="sidebar"
-            aria-expanded="false"
-          >
-            <span class="menu-icon" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          </button>
-          <div class="workspace-title">
-            <h1>AI Agent Playground</h1>
-            <p id="workspace-subtitle" class="workspace-subtitle"></p>
-          </div>
-          <div class="chip-group" role="status" aria-live="polite">
-            <span class="chip" id="active-model"></span>
-            <span class="chip" id="active-endpoint"></span>
-            <span class="chip" id="active-think"></span>
-          </div>
-        </header>
-
         <div class="chat-surface">
           <section class="chat" id="chat" aria-live="polite" aria-label="История сообщений"></section>
         </div>

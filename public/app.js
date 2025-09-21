@@ -11,10 +11,6 @@ const sidebar = document.getElementById('sidebar');
 const menuButton = document.getElementById('menu-button');
 const closeSidebarButton = document.getElementById('close-sidebar');
 const drawerBackdrop = document.getElementById('drawer-backdrop');
-const workspaceSubtitle = document.getElementById('workspace-subtitle');
-const modelBadge = document.getElementById('active-model');
-const endpointBadge = document.getElementById('active-endpoint');
-const thinkBadge = document.getElementById('active-think');
 
 const STORAGE_KEY = 'ai-agent-playground-settings-v1';
 const DEFAULT_ENDPOINT = 'https://impossible-georgeanna-yuhfjrifj-d252474c.koyeb.app/api/chat';
@@ -67,31 +63,28 @@ function normaliseThinking(value) {
 }
 
 function renderConnectionMeta() {
+  if (!menuButton) {
+    return;
+  }
+
   const endpoint = endpointInput.value.trim() || DEFAULT_ENDPOINT;
   const model = modelInput.value.trim() || 'gpt-oss:20b';
   const thinkEnabled = thinkInput.checked;
-
   const endpointSummary = summariseEndpoint(endpoint);
 
-  if (workspaceSubtitle) {
-    workspaceSubtitle.textContent = `${model} • ${endpointSummary}`;
+  const labelParts = [`модель ${model}`];
+  if (endpointSummary) {
+    labelParts.push(`эндпоинт ${endpointSummary}`);
   }
+  labelParts.push(thinkEnabled ? 'режим мыслей включён' : 'режим мыслей выключен');
 
-  if (modelBadge) {
-    modelBadge.textContent = model;
-    modelBadge.title = model;
+  menuButton.setAttribute('aria-label', `Открыть меню настроек (${labelParts.join(', ')})`);
+  const titleParts = [model];
+  if (endpointSummary) {
+    titleParts.push(endpointSummary);
   }
-
-  if (endpointBadge) {
-    endpointBadge.textContent = endpointSummary;
-    endpointBadge.title = endpoint;
-  }
-
-  if (thinkBadge) {
-    thinkBadge.textContent = thinkEnabled ? 'Мысли: вкл' : 'Мысли: выкл';
-    thinkBadge.dataset.state = thinkEnabled ? 'on' : 'off';
-    thinkBadge.title = thinkEnabled ? 'Режим размышлений активен' : 'Режим размышлений отключён';
-  }
+  titleParts.push(thinkEnabled ? 'мысли вкл' : 'мысли выкл');
+  menuButton.title = titleParts.join(' • ');
 }
 
 function loadSettings() {
