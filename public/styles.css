@@ -40,8 +40,9 @@ body {
     radial-gradient(circle at 40% 80%, rgba(129, 140, 248, 0.25), transparent 60%),
     var(--bg-primary);
   display: flex;
+  flex-direction: column;
   align-items: stretch;
-  justify-content: center;
+  justify-content: flex-start;
   font-size: 16px;
   line-height: 1.5;
 }
@@ -74,24 +75,40 @@ body {
   z-index: 1;
   width: 100%;
   min-height: 100vh;
-  display: grid;
-  gap: clamp(24px, 4vw, 40px);
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-  padding: clamp(24px, 4vw, 48px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 4vw, 36px);
+  padding: clamp(16px, 4vw, 32px);
 }
 
 .sidebar {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 20;
+  width: min(420px, 92vw);
+  padding: clamp(28px, 6vw, 38px) clamp(28px, 6vw, 36px);
   display: flex;
   flex-direction: column;
   gap: clamp(20px, 3vw, 32px);
-  padding: clamp(24px, 3vw, 32px);
-  border-radius: var(--radius-xl);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
   background: var(--panel);
-  backdrop-filter: blur(24px);
-  box-shadow: 0 32px 90px rgba(2, 6, 23, 0.65);
-  overflow: hidden;
-  transition: transform var(--transition), max-width var(--transition), padding var(--transition), opacity var(--transition);
+  backdrop-filter: blur(28px);
+  box-shadow: 0 32px 120px rgba(2, 6, 23, 0.85);
+  border-right: 1px solid rgba(148, 163, 184, 0.22);
+  transform: translateX(-110%);
+  transition: transform var(--transition), box-shadow var(--transition);
+  overflow-y: auto;
+  pointer-events: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.sidebar.open {
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 .sidebar::before {
@@ -107,6 +124,35 @@ body {
 .sidebar > * {
   position: relative;
   z-index: 1;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background: rgba(3, 7, 18, 0.65);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition);
+}
+
+.drawer-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.drawer-open {
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -134,7 +180,7 @@ body {
   text-transform: uppercase;
 }
 
-.brand h1 {
+.brand h2 {
   margin: 0;
   font-size: clamp(1.75rem, 4vw, 2.2rem);
   font-weight: 700;
@@ -146,22 +192,33 @@ body {
   color: var(--text-secondary);
 }
 
-.collapse-button {
+.sidebar-close {
   align-self: flex-start;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.14);
-  color: var(--accent);
-  font: inherit;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--text-secondary);
+  font-size: 1.4rem;
   font-weight: 600;
-  border-radius: 999px;
-  padding: 10px 18px;
   cursor: pointer;
-  transition: transform var(--transition), box-shadow var(--transition), background var(--transition);
+  transition: transform var(--transition), box-shadow var(--transition), background var(--transition), border-color var(--transition);
 }
 
-.collapse-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(14, 165, 233, 0.25);
+.sidebar-close:hover,
+.sidebar-close:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(148, 163, 184, 0.25);
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.8);
+  outline: none;
+}
+
+.sidebar-close span {
+  line-height: 1;
 }
 
 .settings {
@@ -297,6 +354,7 @@ body {
 
 .workspace {
   position: relative;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -310,14 +368,23 @@ body {
 
 .workspace-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
+  align-items: center;
+  gap: clamp(16px, 3vw, 28px);
+  flex-wrap: wrap;
 }
 
-.workspace-header h2 {
+.workspace-header h1 {
   margin: 0;
-  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: -0.01em;
+}
+
+.workspace-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 220px;
 }
 
 .workspace-subtitle {
@@ -326,11 +393,67 @@ body {
   font-size: 0.95rem;
 }
 
+.menu-trigger {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.65);
+  color: inherit;
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.menu-trigger:hover,
+.menu-trigger:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.85);
+  box-shadow: 0 16px 32px rgba(14, 165, 233, 0.18);
+  outline: none;
+}
+
+.menu-icon {
+  display: grid;
+  gap: 6px;
+}
+
+.menu-icon span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--text-primary);
+  transition: transform var(--transition), opacity var(--transition);
+  transform-origin: center;
+}
+
+body.drawer-open .menu-trigger {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(148, 163, 184, 0.55);
+}
+
+body.drawer-open .menu-icon span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+body.drawer-open .menu-icon span:nth-child(2) {
+  opacity: 0;
+}
+
+body.drawer-open .menu-icon span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
 .chip-group {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+  margin-left: auto;
 }
 
 .chip {
@@ -600,85 +723,76 @@ body {
   border: 0;
 }
 
-.sidebar.collapsed {
-  max-width: 96px;
-  padding-inline: 16px;
-  gap: 18px;
-  align-items: center;
-}
-
-.sidebar.collapsed .brand h1,
-.sidebar.collapsed .sidebar-description,
-.sidebar.collapsed .settings,
-.sidebar.collapsed .sidebar-footer {
-  display: none;
-}
-
-.sidebar.collapsed .brand {
-  align-items: center;
-}
-
-.sidebar.collapsed .brand-badge {
-  align-self: center;
-}
-
-.sidebar.collapsed::before {
-  opacity: 0.3;
-}
-
-.sidebar.collapsed .collapse-button {
-  display: inline-flex;
-  align-self: center;
-  padding-inline: 14px;
-}
-
-@media (max-width: 1280px) {
+@media (max-width: 1200px) {
   .app-shell {
-    grid-template-columns: 320px minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 1024px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-    min-height: auto;
-    padding: clamp(20px, 5vw, 32px);
-  }
-
-  .sidebar {
-    order: 2;
+    padding: clamp(14px, 4vw, 28px);
   }
 
   .workspace {
-    order: 1;
+    padding: clamp(22px, 5vw, 32px);
   }
 
-  .sidebar.collapsed {
-    max-width: none;
-    padding: clamp(20px, 4vw, 28px);
+  .chip-group {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    padding: clamp(20px, 6vw, 28px);
   }
 
-  .sidebar.collapsed .brand h1,
-  .sidebar.collapsed .sidebar-description,
-  .sidebar.collapsed .settings,
-  .sidebar.collapsed .sidebar-footer {
-    display: initial;
+  .workspace-header {
+    align-items: flex-start;
   }
 
-  .collapse-button {
-    align-self: stretch;
-    text-align: center;
+  .workspace-header h1 {
+    font-size: clamp(1.5rem, 5.5vw, 2rem);
+  }
+
+  .menu-trigger {
+    width: 44px;
+    height: 44px;
+  }
+
+  .chip-group {
+    margin-left: 0;
+    justify-content: flex-start;
   }
 }
 
 @media (max-width: 640px) {
-  .workspace-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .app-shell {
+    padding: clamp(10px, 6vw, 18px);
   }
 
-  .chip-group {
-    justify-content: flex-start;
+  .workspace {
+    padding: clamp(16px, 7vw, 24px);
+    gap: 18px;
+    border-radius: var(--radius-lg);
+  }
+
+  .workspace-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .workspace-header h1 {
+    font-size: clamp(1.35rem, 7vw, 1.75rem);
+  }
+
+  .workspace-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .menu-trigger {
+    width: 40px;
+    height: 40px;
+  }
+
+  .menu-icon span {
+    width: 22px;
   }
 
   .chat-surface {
@@ -698,7 +812,7 @@ body {
   }
 
   .composer textarea {
-    min-height: 90px;
+    min-height: 88px;
   }
 }
 

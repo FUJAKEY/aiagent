@@ -16,57 +16,25 @@
     <div class="background"></div>
     <div class="aurora"></div>
     <main class="app-shell">
-      <aside class="sidebar" aria-label="Панель настроек">
-        <div class="sidebar-header">
-          <div class="brand">
-            <span class="brand-badge">AI Agent</span>
-            <h1>AI Agent Playground</h1>
-            <p class="sidebar-description">
-              Интерактивная песочница для экспериментов с моделью, режимом размышлений и ограниченным терминалом внутри
-              <code>sandbox</code>.
-            </p>
-          </div>
-          <button id="toggle-settings" class="collapse-button" type="button" aria-expanded="true">
-            Свернуть панель
-          </button>
-        </div>
-
-        <section id="settings-panel" class="settings" aria-label="Настройки запроса">
-          <div class="settings-grid">
-            <label class="field">
-              <span>API Endpoint</span>
-              <input type="url" id="endpoint" placeholder="https://example.com/api/chat" spellcheck="false" />
-            </label>
-            <label class="field">
-              <span>Модель</span>
-              <input type="text" id="model" placeholder="gpt-oss:20b" spellcheck="false" />
-            </label>
-            <label class="field field-wide">
-              <span>Системные инструкции</span>
-              <textarea id="system" rows="4" placeholder="Дополнительные указания для модели"></textarea>
-            </label>
-            <label class="switch">
-              <input type="checkbox" id="think" checked />
-              <span class="switch-slider" aria-hidden="true"></span>
-              <span class="switch-label">Включить режим размышлений (think)</span>
-            </label>
-          </div>
-        </section>
-
-        <section class="sidebar-footer" aria-label="Справка">
-          <h2>Инструменты</h2>
-          <p>
-            Инструмент <strong>terminal</strong> выполняет команды только внутри каталога <code>sandbox</code>. Попытки покинуть
-            директорию будут заблокированы.
-          </p>
-          <p class="hint">Сохраняйте настройки — они автоматически подставляются при следующем визите.</p>
-        </section>
-      </aside>
-
       <section class="workspace" aria-label="Область чата">
         <header class="workspace-header">
-          <div>
-            <h2>Диалог</h2>
+          <button
+            type="button"
+            id="menu-button"
+            class="menu-trigger"
+            aria-label="Открыть меню настроек"
+            aria-haspopup="true"
+            aria-controls="sidebar"
+            aria-expanded="false"
+          >
+            <span class="menu-icon" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+          <div class="workspace-title">
+            <h1>AI Agent Playground</h1>
             <p id="workspace-subtitle" class="workspace-subtitle"></p>
           </div>
           <div class="chip-group" role="status" aria-live="polite">
@@ -90,6 +58,55 @@
         </form>
       </section>
     </main>
+
+    <aside class="sidebar" id="sidebar" aria-label="Панель настроек">
+      <div class="sidebar-header">
+        <div class="brand">
+          <span class="brand-badge">AI Agent</span>
+          <h2>Настройки взаимодействия</h2>
+          <p class="sidebar-description">
+            Интерактивная песочница для экспериментов с моделью, режимом размышлений и ограниченным терминалом внутри
+            <code>sandbox</code>.
+          </p>
+        </div>
+        <button type="button" id="close-sidebar" class="sidebar-close" aria-label="Закрыть меню настроек">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <section id="settings-panel" class="settings" aria-label="Настройки запроса">
+        <div class="settings-grid">
+          <label class="field">
+            <span>API Endpoint</span>
+            <input type="url" id="endpoint" placeholder="https://example.com/api/chat" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>Модель</span>
+            <input type="text" id="model" placeholder="gpt-oss:20b" spellcheck="false" />
+          </label>
+          <label class="field field-wide">
+            <span>Системные инструкции</span>
+            <textarea id="system" rows="4" placeholder="Дополнительные указания для модели"></textarea>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="think" checked />
+            <span class="switch-slider" aria-hidden="true"></span>
+            <span class="switch-label">Включить режим размышлений (think)</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="sidebar-footer" aria-label="Справка">
+        <h2>Инструменты</h2>
+        <p>
+          Инструмент <strong>terminal</strong> выполняет команды только внутри каталога <code>sandbox</code>. Попытки покинуть
+          директорию будут заблокированы.
+        </p>
+        <p class="hint">Сохраняйте настройки — они автоматически подставляются при следующем визите.</p>
+      </section>
+    </aside>
+
+    <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
 
     <template id="message-template">
       <article class="message">

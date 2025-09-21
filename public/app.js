@@ -2,13 +2,15 @@ const chatContainer = document.getElementById('chat');
 const form = document.getElementById('composer');
 const messageInput = document.getElementById('message');
 const clearChatButton = document.getElementById('clear-chat');
-const toggleSettingsButton = document.getElementById('toggle-settings');
 const settingsPanel = document.getElementById('settings-panel');
 const endpointInput = document.getElementById('endpoint');
 const modelInput = document.getElementById('model');
 const systemInput = document.getElementById('system');
 const thinkInput = document.getElementById('think');
-const sidebar = document.querySelector('.sidebar');
+const sidebar = document.getElementById('sidebar');
+const menuButton = document.getElementById('menu-button');
+const closeSidebarButton = document.getElementById('close-sidebar');
+const drawerBackdrop = document.getElementById('drawer-backdrop');
 const workspaceSubtitle = document.getElementById('workspace-subtitle');
 const modelBadge = document.getElementById('active-model');
 const endpointBadge = document.getElementById('active-endpoint');
@@ -16,6 +18,11 @@ const thinkBadge = document.getElementById('active-think');
 
 const STORAGE_KEY = 'ai-agent-playground-settings-v1';
 const DEFAULT_ENDPOINT = 'https://impossible-georgeanna-yuhfjrifj-d252474c.koyeb.app/api/chat';
+
+if (sidebar) {
+  sidebar.setAttribute('aria-hidden', 'true');
+  sidebar.setAttribute('inert', '');
+}
 
 const state = {
   messages: [],
@@ -125,6 +132,55 @@ function persistSettings() {
 function autoResizeTextarea() {
   messageInput.style.height = 'auto';
   messageInput.style.height = `${messageInput.scrollHeight}px`;
+}
+
+function showDrawer() {
+  if (!sidebar) return;
+  sidebar.removeAttribute('inert');
+  sidebar.classList.add('open');
+  sidebar.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('drawer-open');
+
+  if (menuButton) {
+    menuButton.setAttribute('aria-expanded', 'true');
+  }
+
+  if (drawerBackdrop) {
+    drawerBackdrop.hidden = false;
+    requestAnimationFrame(() => {
+      drawerBackdrop.classList.add('visible');
+    });
+  }
+}
+
+function hideDrawer({ restoreFocus = false, immediate = false } = {}) {
+  if (!sidebar) return;
+
+  sidebar.classList.remove('open');
+  sidebar.setAttribute('aria-hidden', 'true');
+  sidebar.setAttribute('inert', '');
+  document.body.classList.remove('drawer-open');
+
+  if (menuButton) {
+    menuButton.setAttribute('aria-expanded', 'false');
+  }
+
+  if (drawerBackdrop) {
+    drawerBackdrop.classList.remove('visible');
+    if (immediate) {
+      drawerBackdrop.hidden = true;
+    } else {
+      setTimeout(() => {
+        if (!drawerBackdrop.classList.contains('visible')) {
+          drawerBackdrop.hidden = true;
+        }
+      }, 240);
+    }
+  }
+
+  if (restoreFocus && menuButton) {
+    menuButton.focus();
+  }
 }
 
 function formatRole(role) {
@@ -297,13 +353,39 @@ clearChatButton.addEventListener('click', () => {
   renderChat();
 });
 
-if (toggleSettingsButton && sidebar) {
-  toggleSettingsButton.addEventListener('click', () => {
-    const collapsed = sidebar.classList.toggle('collapsed');
-    toggleSettingsButton.setAttribute('aria-expanded', String(!collapsed));
-    toggleSettingsButton.textContent = collapsed ? 'Развернуть панель' : 'Свернуть панель';
+if (menuButton && sidebar) {
+  menuButton.addEventListener('click', () => {
+    if (sidebar.classList.contains('open')) {
+      hideDrawer();
+      return;
+    }
+
+    showDrawer();
+
+    window.setTimeout(() => {
+      const focusTarget = sidebar.querySelector(
+        'input, textarea, select, button:not(.sidebar-close), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusTarget && typeof focusTarget.focus === 'function') {
+        focusTarget.focus({ preventScroll: true });
+      }
+    }, 260);
   });
 }
+
+if (closeSidebarButton) {
+  closeSidebarButton.addEventListener('click', () => hideDrawer({ restoreFocus: true }));
+}
+
+if (drawerBackdrop) {
+  drawerBackdrop.addEventListener('click', () => hideDrawer({ restoreFocus: true }));
+}
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && sidebar?.classList.contains('open')) {
+    hideDrawer({ restoreFocus: true });
+  }
+});
 
 if (settingsPanel) {
   settingsPanel.addEventListener('input', persistSettings);
